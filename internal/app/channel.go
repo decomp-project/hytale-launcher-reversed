@@ -9,7 +9,6 @@ import (
 	"github.com/getsentry/sentry-go"
 
 	"hytale-launcher/internal/appstate"
-	"hytale-launcher/internal/net"
 	"hytale-launcher/internal/update"
 	"hytale-launcher/internal/updater"
 )
@@ -52,7 +51,7 @@ func (a *App) loadEnv(channel string) *appstate.State {
 // This updates the stored state, creates a new updater for the channel,
 // and persists the selection to the user's account.
 func (a *App) SetChannel(channel *string) {
-	currentChannel := a.currentChannel()
+	currentChannel := a.getCurrentChannel()
 
 	// Log the channel change.
 	newChannelStr := formatChannel(channel)
@@ -118,8 +117,8 @@ func (a *App) ensureValidChannel(currentChannel *string) {
 	}
 }
 
-// currentChannel returns a copy of the current channel name.
-func (a *App) currentChannel() *string {
+// getCurrentChannel returns a copy of the current channel name.
+func (a *App) getCurrentChannel() *string {
 	if a.State == nil {
 		return nil
 	}

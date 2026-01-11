@@ -1,0 +1,20 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "hytale-launcher",
+  "outputfilename": "hytale-launcher",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Hypixel Studios",
+    "email": "support@hytale.com"
+  },
+  "info": {
+    "companyName": "Hypixel Studios",
+    "productName": "Hytale Launcher",
+    "productVersion": "1.0.0",
+    "copyright": "Hypixel Studios",
+    "comments": "Reverse-engineered Hytale game launcher"
+  }
+}

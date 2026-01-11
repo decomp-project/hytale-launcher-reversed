@@ -53,8 +53,8 @@ type App struct {
 	// State is the current update channel's state, including dependencies.
 	State *appstate.State
 
-	// currentChannel holds the name of the currently selected update channel.
-	currentChannel *string
+	// selectedChannel holds the name of the currently selected update channel.
+	selectedChannel *string
 }
 
 // New creates a new App instance.
@@ -157,8 +157,8 @@ func (a *App) userInit() {
 	}
 
 	// Start the periodic refresh loop (every hour).
-	a.refresher = throttle.NewRefresher(a.refresh, time.Hour)
-	a.refresher.Start()
+	a.refresher = throttle.NewRefresher(a.refresh)
+	a.refresher.Start(time.Hour)
 }
 
 // refresh performs a soft refresh of the application state.
@@ -205,7 +205,7 @@ func (a *App) refreshUser(force bool, cause string) {
 	}
 
 	// Refresh the account from the server.
-	if err := acct.Refresh(a.Auth.Client()); err == nil {
+	if err := acct.Refresh(a.Auth.Client(), cause); err == nil {
 		a.selectDefaultProfile()
 		a.Auth.SaveAccount("refresh_user")
 	}
@@ -218,7 +218,7 @@ func (a *App) setNetMode(mode net.Mode, schedule *update.Schedule) {
 
 	if oldMode != mode {
 		slog.Info("setting network mode", "mode", mode)
-		a.ensureValidChannel(a.currentChannel())
+		a.ensureValidChannel(a.getCurrentChannel())
 		a.Emit("setNetworkMode", mode)
 
 		// If a schedule was provided, notify the update listener.

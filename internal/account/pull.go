@@ -60,7 +60,7 @@ func (a *Account) Refresh(client *http.Client, cause string) error {
 	a.Profiles = data.Profiles
 	a.Patchlines = data.Patchlines
 	a.EULAAcceptedAt = data.EULAAcceptedAt
-	a.RefreshedAt = time.Now()
+	a.LastRefresh = time.Now()
 
 	return nil
 }

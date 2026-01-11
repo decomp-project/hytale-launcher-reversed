@@ -8,7 +8,15 @@ var (
 
 	// Version is the build version string (e.g., "2026-01-10-c3879fa").
 	Version string
+
+	// BuildNumber is the numeric build number.
+	BuildNumber int
 )
+
+// IsDev returns true if the application is running in development mode.
+func IsDev() bool {
+	return isDevMode()
+}
 
 // isDevMode returns true if the application is running in development mode.
 func isDevMode() bool {

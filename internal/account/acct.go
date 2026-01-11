@@ -29,6 +29,8 @@ type Profile struct {
 	UUID string `json:"uuid"`
 	// Entitlements is a list of granted entitlements (e.g., "patchline:release").
 	Entitlements []string `json:"entitlements,omitempty"`
+	// Token is the OAuth token for this profile.
+	Token Token `json:"token,omitempty"`
 }
 
 // Patchline represents a game patchline/channel configuration.
@@ -114,11 +116,3 @@ func (a *Account) GetCurrentProfile() *Profile {
 	return nil
 }
 
-// Refresh fetches the latest account data from the server.
-// It updates the local account with new profile and patchline information.
-func (a *Account) Refresh(client interface{}) error {
-	// TODO: Implement actual account refresh from server.
-	// For now, just update the last refresh time.
-	a.LastRefresh = time.Now()
-	return nil
-}

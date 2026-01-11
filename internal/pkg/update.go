@@ -7,7 +7,7 @@ import (
 )
 
 // CheckAllUpdates checks for updates across all components (game, java, launcher).
-func CheckAllUpdates(ctx context.Context, state *appstate.State, auth *appstate.Auth, channel string) ([]Update, error) {
+func CheckAllUpdates(ctx context.Context, state *appstate.State, auth *Auth, channel string) ([]Update, error) {
 	var updates []Update
 
 	// Check for launcher update first

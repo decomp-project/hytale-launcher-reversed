@@ -17,15 +17,36 @@ type State struct {
 	Platform     *build.Platform           `json:"platform,omitempty"`
 	Dependencies map[string]map[string]Dep `json:"dependencies,omitempty"`
 	OfflineReady bool                      `json:"offline_ready,omitempty"`
+	DataDir      string                    `json:"data_dir,omitempty"`
 }
 
 // Dep represents a dependency with version, path, and signature information.
 type Dep struct {
 	Version string `json:"version"`
+	Build   int    `json:"build"`
 	BuildID int    `json:"build_id"`
+	Hash    string `json:"hash,omitempty"`
 	Path    string `json:"path,omitempty"`
 	SigDir  string `json:"sig_dir,omitempty"`
 	SigFile string `json:"sig_file,omitempty"`
+}
+
+// Auth represents authentication state for API requests.
+type Auth struct {
+	Token   string
+	Account *Account
+}
+
+// Account represents account information for authentication.
+type Account struct {
+	Patchlines map[string]*Patchline `json:"patchlines"`
+}
+
+// Patchline represents a game patchline/channel configuration.
+type Patchline struct {
+	Name        string `json:"name"`
+	Version     string `json:"version"`
+	NewestBuild int    `json:"newest_build"`
 }
 
 // SigPath returns the full signature file path by joining SigDir and SigFile.

@@ -59,3 +59,9 @@ func StorageDir() string {
 func InStorageDir(name string) string {
 	return filepath.Join(storageDir(), name)
 }
+
+// DataDir returns the Hytale data directory path.
+// This is an alias for StorageDir for backwards compatibility.
+func DataDir() string {
+	return storageDir()
+}

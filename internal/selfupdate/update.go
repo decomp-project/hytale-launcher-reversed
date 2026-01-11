@@ -192,7 +192,7 @@ func Do() {
 	// Launch the updated process
 	slog.Info("launching updated process", "path", TargetBin)
 
-	if err := fork.RunAsUser(TargetBin); err != nil {
+	if _, err := fork.RunAsUser(TargetBin); err != nil {
 		slog.Error("failed to launch target exec", "error", err)
 		return
 	}

@@ -34,12 +34,12 @@ func init() {
 
 		// Java manifest getter
 		javaManifest = verget.NewGetter("jre", func(ctx context.Context, channel string, fromBuild int) {
-			verget.GetManifest(ctx, "jre")
+			verget.GetManifest(channel, "jre")
 		})
 
 		// Launcher manifest getter
 		launcherManifest = verget.NewGetter("launcher", func(ctx context.Context, channel string, fromBuild int) {
-			verget.GetManifest(ctx, "launcher")
+			verget.GetManifest(channel, "launcher")
 		})
 	})
 }

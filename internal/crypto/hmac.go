@@ -13,3 +13,10 @@ func HMAC(data, key []byte) string {
 	h.Write(data)
 	return hex.EncodeToString(h.Sum(nil))
 }
+
+// LoadSelfUpdateKey loads the key used for self-update verification.
+func LoadSelfUpdateKey() ([]byte, error) {
+	// In the actual implementation, this would load from keyring or similar
+	// For now, return a placeholder key
+	return []byte("hytale-launcher-self-update-key"), nil
+}

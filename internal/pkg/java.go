@@ -13,7 +13,6 @@ import (
 	"hytale-launcher/internal/download"
 	"hytale-launcher/internal/hytale"
 	"hytale-launcher/internal/ioutil"
-	"hytale-launcher/internal/verget"
 
 	"github.com/getsentry/sentry-go"
 )
@@ -32,37 +31,37 @@ type javaUpdate struct {
 // CheckForJavaUpdate checks if a Java runtime update is available.
 func CheckForJavaUpdate(ctx context.Context, state *appstate.State, channel string) (Update, error) {
 	// Get current Java version
-	current := state.GetDependency("jre", channel)
+	current := state.GetDependency("jre")
 
-	// Get manifest for latest version
-	manifest, err := verget.GetManifest(ctx, "jre")
+	// Get manifest for latest version using the getter
+	cached, err := javaManifest.Get(ctx, channel)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Java manifest: %w", err)
 	}
 
 	// Check if update is needed
-	if current != nil && current.Build >= manifest.Build {
+	if current != nil && current.Build >= cached.Build {
 		slog.Debug("Java is up to date",
 			"current", current.Build,
-			"latest", manifest.Build,
+			"latest", cached.Build,
 		)
 		return nil, nil
 	}
 
 	slog.Info("Java update available",
 		"current", current,
-		"target", manifest.Build,
-		"version", manifest.Version,
+		"target", cached.Build,
+		"version", cached.Version,
 	)
 
 	return &javaUpdate{
 		Channel:        channel,
 		CurrentVersion: current,
-		TargetVersion:  manifest.Version,
-		TargetBuild:    manifest.Build,
-		DownloadURL:    manifest.URL,
-		Hash:           manifest.Hash,
-		Size:           manifest.Size,
+		TargetVersion:  cached.Version,
+		TargetBuild:    cached.Build,
+		DownloadURL:    cached.URL,
+		Hash:           cached.Hash,
+		Size:           cached.Size,
 	}, nil
 }
 
@@ -77,7 +76,7 @@ func (u *javaUpdate) Apply(ctx context.Context, state *appstate.State, reporter 
 	u.uninstall(ctx, state)
 
 	// Get Java installation directory
-	javaDir := hytale.PackageDir(state.DataDir, "jre", u.Channel, "latest")
+	javaDir := hytale.PackageDir("jre", u.Channel, "latest")
 
 	// Create directory if it doesn't exist
 	if err := os.MkdirAll(javaDir, 0755); err != nil {
@@ -93,7 +92,7 @@ func (u *javaUpdate) Apply(ctx context.Context, state *appstate.State, reporter 
 		},
 	}, 0, 0.8, reporter)
 
-	archivePath, err := download.DownloadTemp(ctx, u.DownloadURL, downloadReporter)
+	archivePath, err := download.DownloadTempSimple(u.DownloadURL, downloadReporter)
 	if err != nil {
 		return fmt.Errorf("failed to download Java: %w", err)
 	}
@@ -149,7 +148,7 @@ func (u *javaUpdate) uninstall(ctx context.Context, state *appstate.State) {
 		return
 	}
 
-	javaDir := hytale.PackageDir(state.DataDir, "jre", u.Channel, "latest")
+	javaDir := hytale.PackageDir("jre", u.Channel, "latest")
 
 	if err := os.RemoveAll(javaDir); err != nil {
 		sentry.CaptureException(err)

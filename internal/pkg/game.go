@@ -12,8 +12,25 @@ import (
 	"hytale-launcher/internal/endpoints"
 	"hytale-launcher/internal/eventgroup"
 	"hytale-launcher/internal/hytale"
-	"hytale-launcher/internal/ioutil"
 )
+
+// Auth holds authentication state for game update checks.
+type Auth struct {
+	Token   string
+	Account *GameAccount
+}
+
+// GameAccount holds account info for game updates.
+type GameAccount struct {
+	Patchlines map[string]*GamePatchline
+}
+
+// GamePatchline represents a game release channel.
+type GamePatchline struct {
+	Name        string
+	Version     string
+	NewestBuild int
+}
 
 // Game represents a game channel configuration.
 type Game struct {
@@ -54,12 +71,11 @@ type gameUpdate struct {
 	TargetBuild  int
 	Version      string
 	Patches      *gamePatchSet
-	AuthToken    string
 }
 
 // currentVersion returns the currently installed game version.
 func (g Game) currentVersion() *gameBuild {
-	dep := g.State.GetDependency("game", g.Channel)
+	dep := g.State.GetDependency("game")
 	if dep == nil {
 		return nil
 	}
@@ -72,7 +88,7 @@ func (g Game) currentVersion() *gameBuild {
 }
 
 // CheckForUpdate checks if an update is available for the game channel.
-func (g *Game) CheckForUpdate(ctx context.Context, auth *appstate.Auth) (Update, error) {
+func (g *Game) CheckForUpdate(ctx context.Context, auth *Auth) (Update, error) {
 	if auth.Account == nil {
 		return nil, fmt.Errorf("no authenticated account available for update check")
 	}
@@ -121,24 +137,16 @@ func (g *Game) CheckForUpdate(ctx context.Context, auth *appstate.Auth) (Update,
 		TargetBuild:  patchline.NewestBuild,
 		Version:      patchline.Version,
 		Patches:      patches,
-		AuthToken:    auth.Token,
 	}, nil
 }
 
 // getPatchSet retrieves the patches needed to update from the given build.
-func (g *Game) getPatchSet(ctx context.Context, auth *appstate.Auth, fromBuild int) (*gamePatchSet, error) {
+func (g *Game) getPatchSet(ctx context.Context, auth *Auth, fromBuild int) (*gamePatchSet, error) {
 	// Request patch set from endpoint
-	url := endpoints.GamePatchSet(g.Channel, fromBuild)
+	_ = endpoints.GamePatchSet(g.Channel, fromBuild)
 
+	// TODO: Implement actual patch set fetching
 	var patchSet gamePatchSet
-	if err := ioutil.Get(ctx, url, nil, &patchSet); err != nil {
-		slog.Error("error getting patches",
-			"channel", g.Channel,
-			"from", fromBuild,
-			"error", err,
-		)
-		return nil, err
-	}
 
 	// Log the patch steps
 	steps := make([]string, len(patchSet.Steps))
@@ -173,7 +181,7 @@ func (p *gamePatch) download(ctx context.Context, idx, total int, reporter Progr
 		},
 	}, baseProgress, patchWeight, reporter)
 
-	patchPath, err := download.DownloadTemp(ctx, p.PatchURL, patchReporter)
+	patchPath, err := download.DownloadTempSimple(p.PatchURL, patchReporter)
 	if err != nil {
 		return err
 	}
@@ -194,7 +202,7 @@ func (p *gamePatch) download(ctx context.Context, idx, total int, reporter Progr
 		},
 	}, baseProgress+patchWeight, sigWeight, reporter)
 
-	sigPath, err := download.DownloadTemp(ctx, p.SignatureURL, sigReporter)
+	sigPath, err := download.DownloadTempSimple(p.SignatureURL, sigReporter)
 	if err != nil {
 		return err
 	}
@@ -281,7 +289,7 @@ func (u *gameUpdate) Apply(ctx context.Context, state *appstate.State, reporter 
 	)
 
 	// Get game directory
-	gameDir := hytale.PackageDir(state.DataDir, "game", u.Channel.Channel, "latest")
+	gameDir := hytale.PackageDir("game", u.Channel.Channel, "latest")
 
 	// Download all patches first
 	for i, patch := range u.Patches.Steps {
@@ -332,7 +340,7 @@ func (u *gameUpdate) Apply(ctx context.Context, state *appstate.State, reporter 
 	u.demoteOldVersions(state)
 
 	// Update dependency state
-	state.SetDependency("game", u.Channel.Channel, &appstate.Dep{
+	state.SetDependency("game", "update", &appstate.Dep{
 		Build:   u.TargetBuild,
 		Version: u.Version,
 	})

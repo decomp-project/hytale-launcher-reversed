@@ -16,7 +16,6 @@ import (
 	"hytale-launcher/internal/download"
 	"hytale-launcher/internal/fork"
 	"hytale-launcher/internal/ioutil"
-	"hytale-launcher/internal/verget"
 )
 
 // launcherUpdate represents a pending launcher update.
@@ -34,20 +33,20 @@ type launcherUpdate struct {
 // CheckForLauncherUpdate checks if a launcher update is available.
 func CheckForLauncherUpdate(ctx context.Context) (Update, error) {
 	// Get current launcher version
-	currentVersion := build.Version()
-	currentBuild := build.BuildNumber()
+	currentVersion := build.Version
+	currentBuild := build.BuildNumber
 
-	// Get manifest for latest version
-	manifest, err := verget.GetManifest(ctx, "launcher")
+	// Get manifest for latest version using the getter
+	cached, err := launcherManifest.Get(ctx, build.Release)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get launcher manifest: %w", err)
 	}
 
 	// Check if update is needed
-	if currentBuild >= manifest.Build {
+	if currentBuild >= cached.Build {
 		slog.Debug("launcher is up to date",
 			"current", currentBuild,
-			"latest", manifest.Build,
+			"latest", cached.Build,
 		)
 		return nil, nil
 	}
@@ -55,19 +54,19 @@ func CheckForLauncherUpdate(ctx context.Context) (Update, error) {
 	slog.Info("launcher update available",
 		"current_version", currentVersion,
 		"current_build", currentBuild,
-		"target_version", manifest.Version,
-		"target_build", manifest.Build,
+		"target_version", cached.Version,
+		"target_build", cached.Build,
 	)
 
 	return &launcherUpdate{
-		Channel:        build.Release(),
+		Channel:        build.Release,
 		CurrentVersion: currentVersion,
 		CurrentBuild:   currentBuild,
-		TargetVersion:  manifest.Version,
-		TargetBuild:    manifest.Build,
-		DownloadURL:    manifest.URL,
-		Hash:           manifest.Hash,
-		Size:           manifest.Size,
+		TargetVersion:  cached.Version,
+		TargetBuild:    cached.Build,
+		DownloadURL:    cached.URL,
+		Hash:           cached.Hash,
+		Size:           cached.Size,
 	}, nil
 }
 
@@ -87,7 +86,7 @@ func (u *launcherUpdate) Apply(ctx context.Context, state *appstate.State, repor
 		},
 	}, 0, 0.8, reporter)
 
-	newBinaryPath, err := download.DownloadTemp(ctx, u.DownloadURL, downloadReporter)
+	newBinaryPath, err := download.DownloadTempSimple(u.DownloadURL, downloadReporter)
 	if err != nil {
 		return fmt.Errorf("failed to download launcher: %w", err)
 	}
@@ -160,14 +159,14 @@ func (u *launcherUpdate) selfUpdate(ctx context.Context, newBinaryPath string) e
 	pidStr := strconv.FormatInt(int64(pid), 10)
 
 	// Create HMAC signature for verification
-	sig := crypto.HMAC(key, []byte(pidStr))
+	sig := crypto.HMAC([]byte(pidStr), key)
 
 	// Build arguments for the update helper process
 	args := []string{
 		"-start-pid", pidStr,
 		"-source-exe", newBinaryPath,
 		"-dest-exe", currentExe,
-		"-launcher-patchline", build.Release(),
+		"-launcher-patchline", build.Release,
 		"-launcher-version", u.TargetVersion,
 		"-sig", sig,
 	}
@@ -178,7 +177,7 @@ func (u *launcherUpdate) selfUpdate(ctx context.Context, newBinaryPath string) e
 	)
 
 	// Run the new binary with elevated privileges if needed
-	if err := fork.RunElevated(newBinaryPath, args...); err != nil {
+	if _, err := fork.RunElevated(newBinaryPath, args); err != nil {
 		return err
 	}
 
@@ -191,16 +190,16 @@ func (u *launcherUpdate) selfUpdate(ctx context.Context, newBinaryPath string) e
 
 // Populate fills in missing launcher update information from manifest.
 func (u *launcherUpdate) Populate(ctx context.Context) error {
-	manifest, err := verget.GetManifest(ctx, "launcher")
+	cached, err := launcherManifest.Get(ctx, build.Release)
 	if err != nil {
 		return err
 	}
 
-	u.DownloadURL = manifest.URL
-	u.Hash = manifest.Hash
-	u.Size = manifest.Size
-	u.TargetVersion = manifest.Version
-	u.TargetBuild = manifest.Build
+	u.DownloadURL = cached.URL
+	u.Hash = cached.Hash
+	u.Size = cached.Size
+	u.TargetVersion = cached.Version
+	u.TargetBuild = cached.Build
 
 	return nil
 }

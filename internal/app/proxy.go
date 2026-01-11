@@ -7,6 +7,7 @@ import (
 	"github.com/getsentry/sentry-go"
 
 	"hytale-launcher/internal/account"
+	"hytale-launcher/internal/appstate"
 	"hytale-launcher/internal/net"
 	"hytale-launcher/internal/news"
 	"hytale-launcher/internal/pkg"
@@ -118,7 +119,7 @@ func (a *App) SetUserProfile(uuid string) error {
 	}
 
 	// Ensure the current channel is still valid for this profile.
-	a.ensureValidChannel(a.currentChannel())
+	a.ensureValidChannel(a.getCurrentChannel())
 
 	// Only save if the profile actually changed.
 	if currentProfile == nil || currentProfile.UUID != uuid {
@@ -220,5 +221,5 @@ func (a *App) GetState() *appstate.State {
 
 // GetCurrentChannel returns the currently selected channel name.
 func (a *App) GetCurrentChannel() *string {
-	return a.currentChannel()
+	return a.getCurrentChannel()
 }

@@ -1,0 +1,9 @@
+{
+  "name": "hytale-launcher-frontend",
+  "version": "1.0.0",
+  "description": "Hytale Launcher Frontend",
+  "scripts": {
+    "dev": "echo 'No dev server configured'",
+    "build": "echo 'Static frontend, no build needed'"
+  }
+}

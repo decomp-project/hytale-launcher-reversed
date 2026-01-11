@@ -1,6 +1,9 @@
 package ioutil
 
 import (
+	"archive/tar"
+	"archive/zip"
+	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -75,4 +78,125 @@ func FindExecutable(dir string, suffixes []string) (string, error) {
 	}
 
 	return result, nil
+}
+
+// ExtractArchive extracts an archive (zip, tar.gz) to the destination directory.
+func ExtractArchive(archivePath, destDir string) error {
+	// Determine archive type based on extension
+	lower := strings.ToLower(archivePath)
+
+	switch {
+	case strings.HasSuffix(lower, ".zip"):
+		return extractZip(archivePath, destDir)
+	case strings.HasSuffix(lower, ".tar.gz") || strings.HasSuffix(lower, ".tgz"):
+		return extractTarGz(archivePath, destDir)
+	default:
+		return fmt.Errorf("unsupported archive format: %s", archivePath)
+	}
+}
+
+// extractZip extracts a zip archive to the destination directory.
+func extractZip(archivePath, destDir string) error {
+	r, err := zip.OpenReader(archivePath)
+	if err != nil {
+		return fmt.Errorf("failed to open zip: %w", err)
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+		destPath := filepath.Join(destDir, f.Name)
+
+		// Check for path traversal
+		if !strings.HasPrefix(destPath, filepath.Clean(destDir)+string(os.PathSeparator)) {
+			return fmt.Errorf("invalid file path: %s", f.Name)
+		}
+
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(destPath, 0755)
+			continue
+		}
+
+		if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+			return err
+		}
+
+		rc, err := f.Open()
+		if err != nil {
+			return err
+		}
+
+		outFile, err := os.Create(destPath)
+		if err != nil {
+			rc.Close()
+			return err
+		}
+
+		_, err = io.Copy(outFile, rc)
+		outFile.Close()
+		rc.Close()
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// extractTarGz extracts a tar.gz archive to the destination directory.
+func extractTarGz(archivePath, destDir string) error {
+	f, err := os.Open(archivePath)
+	if err != nil {
+		return fmt.Errorf("failed to open archive: %w", err)
+	}
+	defer f.Close()
+
+	gzr, err := gzip.NewReader(f)
+	if err != nil {
+		return fmt.Errorf("failed to create gzip reader: %w", err)
+	}
+	defer gzr.Close()
+
+	tr := tar.NewReader(gzr)
+
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("failed to read tar header: %w", err)
+		}
+
+		destPath := filepath.Join(destDir, header.Name)
+
+		// Check for path traversal
+		if !strings.HasPrefix(destPath, filepath.Clean(destDir)+string(os.PathSeparator)) {
+			return fmt.Errorf("invalid file path: %s", header.Name)
+		}
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(destPath, 0755); err != nil {
+				return err
+			}
+		case tar.TypeReg:
+			if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+				return err
+			}
+
+			outFile, err := os.Create(destPath)
+			if err != nil {
+				return err
+			}
+
+			if _, err := io.Copy(outFile, tr); err != nil {
+				outFile.Close()
+				return err
+			}
+			outFile.Close()
+		}
+	}
+
+	return nil
 }

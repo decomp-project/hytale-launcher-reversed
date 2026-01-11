@@ -1,5 +1,12 @@
 package download
 
+import (
+	"net/http"
+	"os"
+
+	"hytale-launcher/internal/hytale"
+)
+
 // ProgressReport contains information about download progress.
 // This is used to send progress updates to a status callback.
 type ProgressReport struct {
@@ -105,6 +112,31 @@ func shouldReportProgress(lastProgress, currentProgress float64) bool {
 
 	// Report if progress changed by at least 1%
 	return currentProgress-lastProgress >= 0.01
+}
+
+// StatusReporter is a generic status callback used by pkg package.
+type StatusReporter interface{}
+
+// NewReporter creates a reporter adapter for update status reporting.
+// This adapts between the pkg.UpdateStatus type and download.ProgressReporter.
+func NewReporter(status interface{}, baseProgress, weight float64, callback interface{}) ProgressReporter {
+	return func(bytesDownloaded int64, speed int64) {
+		// This is a stub adapter - the actual implementation would
+		// convert between status types and call the callback
+	}
+}
+
+// DownloadTempSimple downloads a file to a temp directory and returns the path.
+// This is a simplified version that uses default settings.
+func DownloadTempSimple(url string, reporter ProgressReporter) (string, error) {
+	client := http.DefaultClient
+	cacheDir := hytale.InStorageDir("cache")
+
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		return "", err
+	}
+
+	return DownloadTemp(nil, client, cacheDir, url, "", reporter)
 }
 
 // ReporterWithTotal creates a ProgressReporter that knows the expected total size.

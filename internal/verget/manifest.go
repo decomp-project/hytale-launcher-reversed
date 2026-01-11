@@ -3,14 +3,79 @@
 package verget
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
+	"sync"
 
 	"hytale-launcher/internal/endpoints"
 	"hytale-launcher/internal/ioutil"
 	"hytale-launcher/internal/net"
 )
+
+// FetchFunc is a callback for fetching patch/version data.
+type FetchFunc func(ctx context.Context, channel string, fromBuild int)
+
+// Getter provides cached version manifest retrieval.
+type Getter struct {
+	component string
+	fetch     FetchFunc
+	mu        sync.RWMutex
+	cache     *CachedManifest
+}
+
+// CachedManifest holds a cached manifest with metadata.
+type CachedManifest struct {
+	Manifest *Manifest
+	Build    int
+	Version  string
+	URL      string
+	Hash     string
+	Size     int64
+}
+
+// NewGetter creates a new version manifest getter for a component.
+func NewGetter(component string, fetch FetchFunc) *Getter {
+	return &Getter{
+		component: component,
+		fetch:     fetch,
+	}
+}
+
+// Invalidate clears the cached manifest.
+func (g *Getter) Invalidate() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.cache = nil
+}
+
+// Get returns the cached manifest or fetches a new one.
+func (g *Getter) Get(ctx context.Context, channel string) (*CachedManifest, error) {
+	g.mu.RLock()
+	if g.cache != nil {
+		defer g.mu.RUnlock()
+		return g.cache, nil
+	}
+	g.mu.RUnlock()
+
+	// Fetch new manifest
+	manifest, err := GetManifest(channel, g.component)
+	if err != nil {
+		return nil, err
+	}
+
+	cached := &CachedManifest{
+		Manifest: manifest,
+		Version:  manifest.Version,
+	}
+
+	g.mu.Lock()
+	g.cache = cached
+	g.mu.Unlock()
+
+	return cached, nil
+}
 
 // Platform represents the target operating system.
 type Platform string

@@ -1,0 +1,18 @@
+# Build directory
+build/
+
+# Node
+node_modules/
+
+# Wails generated files
+frontend/wailsjs/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
