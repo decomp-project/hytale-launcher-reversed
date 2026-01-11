@@ -52,7 +52,7 @@ const bgStyle = `url(${curseBg})`
   height: 220px;
   right: 55px;
   top: 143px;
-  opacity: 0;
+  opacity: 1;
   animation: curse-portal-front-animation 4s ease-out infinite;
 }
 
@@ -61,7 +61,7 @@ const bgStyle = `url(${curseBg})`
   width: 275px;
   right: 25px;
   top: 70px;
-  opacity: 0;
+  opacity: 1;
   animation: curse-tentacles-2-animation 4s ease-out infinite;
   transform-origin: right center;
 }

@@ -1,17 +1,25 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/getsentry/sentry-go"
+	"golang.org/x/oauth2"
 
 	"hytale-launcher/internal/account"
 	"hytale-launcher/internal/appstate"
+	"hytale-launcher/internal/auth"
 	"hytale-launcher/internal/net"
 	"hytale-launcher/internal/news"
+	"hytale-launcher/internal/oauth"
 	"hytale-launcher/internal/pkg"
 )
+
+// currentLoopback holds the active login attempt
+var currentLoopback *oauth.Loopback
 
 // CheckForUpdates checks for available updates for the current channel.
 // If force is true, it will refresh user data and invalidate version manifests.
@@ -222,4 +230,89 @@ func (a *App) GetState() *appstate.State {
 // GetCurrentChannel returns the currently selected channel name.
 func (a *App) GetCurrentChannel() *string {
 	return a.getCurrentChannel()
+}
+
+// Login initiates the OAuth login flow.
+// It starts a local loopback HTTP server for the callback and returns the authorization URL.
+func (a *App) Login() (string, error) {
+	// Stop any existing login attempt
+	if currentLoopback != nil {
+		currentLoopback.Stop()
+	}
+
+	// Create new loopback handler
+	currentLoopback = oauth.NewLoopback()
+
+	// Start the loopback server and get the authorization URL
+	authURL, err := currentLoopback.Start()
+	if err != nil {
+		currentLoopback = nil
+		return "", err
+	}
+
+	// Wait for the login to complete in background
+	go a.waitForLogin()
+
+	return authURL, nil
+}
+
+// waitForLogin waits for the OAuth flow to complete and processes the result.
+func (a *App) waitForLogin() {
+	loopback := currentLoopback
+	if loopback == nil {
+		return
+	}
+
+	defer func() {
+		loopback.Stop()
+		currentLoopback = nil
+	}()
+
+	// Wait for token with 5 minute timeout
+	token, err := loopback.Wait(5 * time.Minute)
+	if err != nil {
+		slog.Error("login failed", "error", err)
+		a.Emit("login_error", err.Error())
+		return
+	}
+
+	// Get the OAuth config for token refresh
+	config := loopback.GetConfig()
+
+	// Create the account from the token
+	if err := a.createAccountFromToken(token, config); err != nil {
+		slog.Error("failed to create account", "error", err)
+		a.Emit("login_error", err.Error())
+		return
+	}
+
+	slog.Info("login successful")
+	a.Emit("login_success")
+	a.ReloadLauncher("login_success")
+}
+
+// createAccountFromToken creates a new account from an OAuth token.
+func (a *App) createAccountFromToken(token *oauth2.Token, config *oauth2.Config) error {
+	// Set the OAuth config for token refresh
+	auth.SetOAuthConfig(config)
+
+	// Create HTTP client with token
+	client := config.Client(context.Background(), token)
+
+	// Fetch user data from the API
+	// TODO: Implement launcher data fetching
+	// For now, create a minimal account
+
+	acct := &account.Account{
+		Token: account.Token{
+			AccessToken:  token.AccessToken,
+			RefreshToken: token.RefreshToken,
+			Expiry:       token.Expiry,
+		},
+	}
+
+	// Set the account in the auth controller
+	a.Auth.SetAccount(acct, client)
+
+	return nil
 }

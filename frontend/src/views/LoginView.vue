@@ -1,30 +1,31 @@
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { BrowserOpenURL } from '@wailsjs/runtime/runtime'
+import * as App from '@wailsjs/go/app/App'
 import Logo from '@/components/Logo.vue'
 import HyButton from '@/components/HyButton.vue'
 import LauncherVersion from '@/components/LauncherVersion.vue'
 
 const router = useRouter()
-const loginUrl = ref<string | null>(null)
+const isLoading = ref(false)
 
 const openInIcon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAARCAYAAAA7bUf6AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAC8SURBVHgBrZK9EQIhEIX5Cwgp4SJmCCnBCmzFDjxLsAM7sQTMSC3hKgB3Ax08gT3v7iXsDPDxeLs8xjiybz2dczcscE8IcWaERG8TYGNK6cIIqfJCCwSOWM9R10kJyjlfN0HAycA5P66GIAC+codyWAWpATDoedjqX8C7AWXYTSdSSgOLqQFQZfubEGvtA8I8QDnNAT8gnMrK1H4UQjCMkKIOeO8n6gES0pPW+oTromGjtAuE90Jdql2cvAClzFdGDZMFsAAAAABJRU5ErkJggg=='
 
-onMounted(async () => {
-  // In real implementation, would fetch OAuth URL from backend
-  // For now, simulate with placeholder
-  try {
-    // loginUrl.value = await GetLoginUrl()
-    loginUrl.value = 'https://oauth.accounts.hytale.com/oauth2/auth?client_id=hytale-launcher&response_type=code&scope=openid+offline+auth:launcher'
-  } catch (error) {
-    router.push({ name: 'error', query: { error: String(error) } })
-  }
-})
+async function signIn() {
+  if (isLoading.value) return
 
-function signIn() {
-  if (loginUrl.value) {
-    BrowserOpenURL(loginUrl.value)
+  isLoading.value = true
+  try {
+    // Get OAuth URL from backend (starts loopback server)
+    const loginUrl = await App.Login()
+    // Open in browser
+    BrowserOpenURL(loginUrl)
+  } catch (error) {
+    console.error('Login error:', error)
+    router.push({ name: 'error', query: { error: String(error) } })
+  } finally {
+    isLoading.value = false
   }
 }
 </script>
@@ -37,7 +38,7 @@ function signIn() {
         <HyButton
           class="login__sign-in-button"
           @click="signIn"
-          :disabled="!loginUrl"
+          :disabled="isLoading"
           type="primary"
         >
           {{ $t('login.sign_in') }}

@@ -62,3 +62,18 @@ func GamePatchSet(channel string, version int) string {
 func LauncherData() string {
 	return fmt.Sprintf("https://account-data.%s/launcher-data", Domain)
 }
+
+// OAuthBase returns the base URL for the OAuth authorization server.
+func OAuthBase() string {
+	return fmt.Sprintf("https://oauth.accounts.%s", Domain)
+}
+
+// OAuthAuth returns the OAuth authorization endpoint URL.
+func OAuthAuth() string {
+	return OAuthBase() + "/oauth2/auth"
+}
+
+// OAuthToken returns the OAuth token endpoint URL.
+func OAuthToken() string {
+	return OAuthBase() + "/oauth2/token"
+}
