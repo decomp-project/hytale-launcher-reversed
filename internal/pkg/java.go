@@ -92,7 +92,7 @@ func (u *javaUpdate) Apply(ctx context.Context, state *appstate.State, reporter 
 		},
 	}, 0, 0.8, reporter)
 
-	archivePath, err := download.DownloadTempSimple(u.DownloadURL, downloadReporter)
+	archivePath, err := download.DownloadTempSimple(ctx, u.DownloadURL, downloadReporter)
 	if err != nil {
 		return fmt.Errorf("failed to download Java: %w", err)
 	}

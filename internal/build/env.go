@@ -49,3 +49,14 @@ func DebugLogging() bool {
 	_, ok := os.LookupEnv("HYTALE_LAUNCHER_DEBUG_LOGGING")
 	return ok
 }
+
+// TestRunBinaries returns true if test run binaries should be executed.
+// In dev mode, this can be disabled via the HYTALE_LAUNCHER_NO_TEST_RUN_BINARIES
+// environment variable.
+func TestRunBinaries() bool {
+	if isDevMode() {
+		_, ok := os.LookupEnv("HYTALE_LAUNCHER_NO_TEST_RUN_BINARIES")
+		return !ok
+	}
+	return true
+}

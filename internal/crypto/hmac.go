@@ -4,7 +4,12 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+
+	"hytale-launcher/internal/keyring"
 )
+
+// selfUpdateKeyID is the UUID used to identify the self-update key in the keyring.
+const selfUpdateKeyID = "3BA63AC3-1B08-425B-AC1A-3B19841B660D"
 
 // HMAC computes an HMAC-SHA256 of the data using the provided key,
 // and returns the result as a hexadecimal string.
@@ -14,9 +19,7 @@ func HMAC(data, key []byte) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// LoadSelfUpdateKey loads the key used for self-update verification.
+// LoadSelfUpdateKey loads the key used for self-update verification from the keyring.
 func LoadSelfUpdateKey() ([]byte, error) {
-	// In the actual implementation, this would load from keyring or similar
-	// For now, return a placeholder key
-	return []byte("hytale-launcher-self-update-key"), nil
+	return keyring.GetOrGenKey(selfUpdateKeyID)
 }

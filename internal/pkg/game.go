@@ -181,7 +181,7 @@ func (p *gamePatch) download(ctx context.Context, idx, total int, reporter Progr
 		},
 	}, baseProgress, patchWeight, reporter)
 
-	patchPath, err := download.DownloadTempSimple(p.PatchURL, patchReporter)
+	patchPath, err := download.DownloadTempSimple(ctx, p.PatchURL, patchReporter)
 	if err != nil {
 		return err
 	}
@@ -202,7 +202,7 @@ func (p *gamePatch) download(ctx context.Context, idx, total int, reporter Progr
 		},
 	}, baseProgress+patchWeight, sigWeight, reporter)
 
-	sigPath, err := download.DownloadTempSimple(p.SignatureURL, sigReporter)
+	sigPath, err := download.DownloadTempSimple(ctx, p.SignatureURL, sigReporter)
 	if err != nil {
 		return err
 	}
@@ -219,7 +219,11 @@ func (p *gamePatch) download(ctx context.Context, idx, total int, reporter Progr
 
 // mkStagingDir creates a temporary staging directory for patch application.
 func (p *gamePatch) mkStagingDir() (string, error) {
-	// Check for XDG cache directory first
+	// Check for TMPDIR environment variable first
+	if tmpDir, ok := os.LookupEnv("TMPDIR"); ok {
+		return os.MkdirTemp(tmpDir, "hytale-patch-staging-*")
+	}
+	// Check for XDG cache directory second
 	if cacheDir, ok := os.LookupEnv("XDG_CACHE_HOME"); ok {
 		return os.MkdirTemp(cacheDir, "hytale-patch-staging-*")
 	}

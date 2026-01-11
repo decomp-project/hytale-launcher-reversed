@@ -1,6 +1,7 @@
 package download
 
 import (
+	"context"
 	"net/http"
 	"os"
 
@@ -128,7 +129,7 @@ func NewReporter(status interface{}, baseProgress, weight float64, callback inte
 
 // DownloadTempSimple downloads a file to a temp directory and returns the path.
 // This is a simplified version that uses default settings.
-func DownloadTempSimple(url string, reporter ProgressReporter) (string, error) {
+func DownloadTempSimple(ctx context.Context, url string, reporter ProgressReporter) (string, error) {
 	client := http.DefaultClient
 	cacheDir := hytale.InStorageDir("cache")
 
@@ -136,7 +137,7 @@ func DownloadTempSimple(url string, reporter ProgressReporter) (string, error) {
 		return "", err
 	}
 
-	return DownloadTemp(nil, client, cacheDir, url, "", reporter)
+	return DownloadTemp(ctx, client, cacheDir, url, "", reporter)
 }
 
 // ReporterWithTotal creates a ProgressReporter that knows the expected total size.

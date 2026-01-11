@@ -86,7 +86,7 @@ func (u *launcherUpdate) Apply(ctx context.Context, state *appstate.State, repor
 		},
 	}, 0, 0.8, reporter)
 
-	newBinaryPath, err := download.DownloadTempSimple(u.DownloadURL, downloadReporter)
+	newBinaryPath, err := download.DownloadTempSimple(ctx, u.DownloadURL, downloadReporter)
 	if err != nil {
 		return fmt.Errorf("failed to download launcher: %w", err)
 	}

@@ -23,7 +23,7 @@ type watchTokenSource struct {
 }
 
 // tokenEqual compares two tokens for equality based on their AccessToken,
-// TokenType, and Expiry fields.
+// RefreshToken, and Expiry fields.
 func tokenEqual(a, b *oauth2.Token) bool {
 	if a == nil || b == nil {
 		return a == b
@@ -31,7 +31,7 @@ func tokenEqual(a, b *oauth2.Token) bool {
 	if a.AccessToken != b.AccessToken {
 		return false
 	}
-	if a.TokenType != b.TokenType {
+	if a.RefreshToken != b.RefreshToken {
 		return false
 	}
 	if !a.Expiry.Equal(b.Expiry) {
